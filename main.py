@@ -12,9 +12,22 @@ import time
 from datetime import datetime
 
 
-def setDatesFromTitles(videoObjects: list[Movie]) -> list[Movie]:
+# def updateModifiedTime(videoPath: str):
+#     date = getDateFromTitle(videoPath)
+#     modTime = time.mktime(date.timetuple())
+
+#     os.utime(fileLocation, (modTime, modTime))
+
+
+def setDatesFromTitles(videoObjects: list[Movie], channelFolder: str) -> list[Movie]:
     for videoObject in videoObjects:
         videoObject.originallyAvailableAt = getDateFromTitle(videoObject.title)
+        videoPath = f"{os.path.join(channelFolder, videoObject.title)}.mkv"
+        modTime = time.mktime(getDateFromTitle(videoObject.title).timetuple())
+        os.utime(
+            videoPath,
+            (modTime, modTime),
+        )
     return videoObjects
 
 
@@ -213,6 +226,6 @@ if __name__ == "__main__":
 
     # We must parse the date out of the youtube video title and apply it to the plex object
     # otherwise, we won't be able to properly sort by release date.
-    videoObjects = setDatesFromTitles(videoObjects)
+    videoObjects = setDatesFromTitles(videoObjects, channelFolder)
 
     addVideosToPlexCollection(plex, videoObjects, youtubeLibrary, channelName)
