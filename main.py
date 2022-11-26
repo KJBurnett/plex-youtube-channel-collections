@@ -88,7 +88,7 @@ def findYoutubeVideosInPlex(
     plexVideoObjects = []
 
     counter = 1
-    for video in channelVideos[:30]:
+    for video in channelVideos[:10]:
         # Find existence of video in the plex library.
         # TODO: Ensure this works. Messed with it a lot.
         print(f"[{counter}/{len(channelVideos)}] Searching for {video}")
@@ -212,7 +212,8 @@ if __name__ == "__main__":
 
     # ======================================== #
     # For testing/debugging
-    channelFolder = "Z:\Youtube\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]"
+    # channelFolder = "Z:\Youtube\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]"
+    channelFolder = "\\\\100.68.163.44\\DrivePool\\Youtube\\Winding Road Magazine [UCeiBi8gptAwNoIHrZ3OUUbw]"
 
     channelName = getChannelNameFromFolder(channelFolder=channelFolder)
     channelVideos = getVideosFromChannelFolder(channelFolder=channelFolder)
