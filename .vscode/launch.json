@@ -1,0 +1,26 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                "PLEX_URL": "https://192.168.1.25:32400",
+                "PLEX_TOKEN": "9KJzKo6toUoFMCxPNE5e",
+                "YOUTUBE_PATH": "Z:\\Youtube",
+                "YOUTUBE_LIBRARY_NAME": "Youtube",
+                "MEDIA_TYPE": "movie",
+                "YOUTUBE_VIDEO_EXTENSION": ".mkv",
+                "SECONDS_TO_WAIT": "3600",
+                "PYTHONWARNINGS": "ignore:Unverified HTTPS request"
+            }
+        }
+    ]
+}
