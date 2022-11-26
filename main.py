@@ -15,6 +15,7 @@ import time
 # Before: "Z:\Youtube\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]\20120727 - Ferrari Dino 246 GTS - (81s) [qZbpzYNEziY].mkv"
 # After: "20120727 - Ferrari Dino 246 GTS - (81s) [qZbpzYNEziY]"
 def getVideosFromChannelFolder(channelFolder: str) -> list[str]:
+    # TODO: Ensure this returns the desired videos list.
     videos = [
         os.path.basename(video.replace(".mkv", ""))
         for video in os.listdir(channelFolder)
@@ -25,10 +26,10 @@ def getVideosFromChannelFolder(channelFolder: str) -> list[str]:
 
 # Return the channel name from the cahnnelFolder.
 # Example:
-# Before: "Z:\\Youtube\TheStradman"
+# Before: "Z:\\Youtube\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]"
 # After: "TheStradman"
 def getChannelNameFromFolder(channelFolder: str) -> str:
-    return os.path.basename(channelFolder)
+    return os.path.basename(channelFolder).split(" [")[0]
 
 
 # Ensure we're looking at specifically Youtube Channel Folders.
@@ -48,17 +49,16 @@ def getValidChannelFolders(youtubePath: str) -> list[str]:
 # Search the Plex database for plex video objects of the youtube videos.
 # We have to search the Plex database for every single video file name, and retrieve its Plex library object.
 def findYoutubeVideosInPlex(
-    channelVideos: list[str], mediaType: str, sectionId: str
+    plex: PlexServer, channelVideos: list[str], mediaType: str, youtubeLibrary: str
 ) -> list[str]:
     plexVideoObjects = []
 
-    testVideos = channelVideos[:50]
-
-    for video in testVideos:
+    for video in channelVideos:
         # Find existence of video in the plex library.
-        print("Searching for " + video)
-        videoObject = plex.search(video, mediatype=mediaType, sectionId=youtubeLibrary)
-        if len(videoObject):
+        # TODO: Ensure this works. Messed with it a lot.
+        print(f"Searching for {video}")
+        videoObject = searchPlexForVideo(plex, video, mediaType, youtubeLibrary)
+        if videoObject:
             plexVideoObjects.append(videoObject[0])
             print("Video found in Plex!")
         else:
@@ -66,24 +66,49 @@ def findYoutubeVideosInPlex(
     return plexVideoObjects
 
 
-def searchPlexForVideo(video: str, mediaType: str, sectionId: str):
-    retries = 5
+def searchPlexForVideo(
+    plex: PlexServer, video: str, mediaType: str, youtubeLibrary: str
+):
+    maxRetries = 5
+    attempt = 1
     waitInSeconds = 2
     querySucess = False
     videoObject = None
-    while retries != 0 and not querySucess:
+    while attempt <= maxRetries and not querySucess:
         try:
             videoObject = plex.search(
                 video, mediatype=mediaType, sectionId=youtubeLibrary
             )
             querySucess = True
-        except:
-            retries -= 1
+        except Exception as e:
+            print(
+                f"Error. The Plex server likely timed out from too many requests. Waiting for {waitInSeconds} before trying again.\nAttempt {attempt}/{maxRetries}\n Caught Exception: {e}"
+            )
+            attempt += 1
             time.sleep(waitInSeconds)
             waitInSeconds = (
                 waitInSeconds * 2
             )  # Increase the wait time if we have to wait again.
     return videoObject
+
+
+def addVideosToPlexCollection(
+    plex: PlexServer, videoObjects, youtubeLibrary: str, channelName: str
+) -> None:
+    # Check to see if the collection already exists.
+    collectionResults = plex.search(
+        channelName, mediatype="collection", sectionId=youtubeLibrary
+    )
+
+    if collectionResults:
+        collection = collectionResults[0]
+        collection.addItems(videoObjects)
+    else:
+        print(f"The collection does not exist. Creating a collection for {channelName}")
+        # TODO: Remove newCollection. Required now for debugging.
+        newCollection = plex.createCollection(
+            title=channelName, section=youtubeLibrary, items=videoObjects
+        )
 
 
 # Error checking for initial startup of the script.
@@ -131,30 +156,32 @@ if __name__ == "__main__":
 
     print("All environment variables successfully loaded.\n")
 
-    # ===== Let's get to work ===== #
-    validChannelFolders = getValidChannelFolders(youtubePath)
-
-    # For testing/debugging
-    channelFolder = "Z:\Youtube\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]"
-    channelName = getChannelNameFromFolder(channelFolder=channelFolder)
-    channelVideos = getVideosFromChannelFolder(channelFolder=channelFolder)
-
     # Start a PlexServer API session.
     session = requests.Session()
     session.verify = False
     plex = PlexServer(baseurl, token, session)
 
+    # ===== Let's get to work ===== #
+    validChannelFolders = getValidChannelFolders(youtubePath)
+
+    # for validChannelFolder in validChannelFolders:
+    #     channelName = getChannelNameFromFolder(channelFolder=validChannelFolder)
+    #     channelVideos = getVideosFromChannelFolder(channelFolder=validChannelFolder)
+
+    #     videoObjects = findYoutubeVideosInPlex(
+    #         channelVideos, mediaType, sectionId=youtubeLibrary
+    #     )
+    #     addToPlexCollection(plex, videoObjects, youtubeLibrary, channelName)
+
+    # ======================================== #
+    # For testing/debugging
+    channelFolder = "Z:\Youtube\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]"
+
+    channelName = getChannelNameFromFolder(channelFolder=channelFolder)
+    channelVideos = getVideosFromChannelFolder(channelFolder=channelFolder)
+
     videoObjects = findYoutubeVideosInPlex(
-        channelVideos, mediaType, sectionId=youtubeLibrary
+        plex, channelVideos, mediaType, youtubeLibrary
     )
 
-    # Check to see if the collection already exists.
-    collectionResults = plex.search(
-        channelName, mediatype="collection", sectionId="Youtube"
-    )
-
-    if collectionResults:
-        collection = collectionResults[0]
-        result = collection.addItems(videoObjects)
-    else:
-        print("The collection does not exist. Creating...")
+    addVideosToPlexCollection(plex, videoObjects, youtubeLibrary, channelName)
