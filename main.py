@@ -88,7 +88,7 @@ def findYoutubeVideosInPlex(
     plexVideoObjects = []
 
     counter = 1
-    for video in channelVideos[:10]:
+    for video in channelVideos[:30]:
         # Find existence of video in the plex library.
         # TODO: Ensure this works. Messed with it a lot.
         print(f"[{counter}/{len(channelVideos)}] Searching for {video}")
