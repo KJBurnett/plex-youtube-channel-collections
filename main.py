@@ -6,8 +6,29 @@ import os
 import sys
 from plexapi.server import PlexServer
 from plexapi.collection import Collection
+from plexapi.video import Movie
 import requests
 import time
+from datetime import datetime
+
+
+def setDatesFromTitles(videoObjects: list[Movie]) -> list[Movie]:
+    for videoObject in videoObjects:
+        videoObject.originallyAvailableAt = getDateFromTitle(videoObject.title)
+    return videoObjects
+
+
+# Expected file name format: "20120727 - Ferrari Dino 246 GTS - (81s) [qZbpzYNEziY]"
+# Split by first whitespace to get the date string.
+# Then, parse the year, month, and day out of the singular no-space string.
+# returns a datetime object, as required by plexapi.video.originallyAvailableAt
+def getDateFromTitle(title: str) -> datetime:
+    date = title.split(" ")[0]
+    year = int(date[:4])
+    month = int(date[4:6])
+    day = int(date[6:8])
+    return datetime(year, month, day)
+
 
 # Get a list of videos from the channelFolder by finding all files with the YOUTUBE_VIDEO_EXTENSION
 # strip the video of its extension, and remove the filepath. Plex only needs the file name.
@@ -50,13 +71,15 @@ def getValidChannelFolders(youtubePath: str) -> list[str]:
 # We have to search the Plex database for every single video file name, and retrieve its Plex library object.
 def findYoutubeVideosInPlex(
     plex: PlexServer, channelVideos: list[str], mediaType: str, youtubeLibrary: str
-) -> list[str]:
+) -> list[Movie]:
     plexVideoObjects = []
 
-    for video in channelVideos:
+    counter = 1
+    for video in channelVideos[:10]:
         # Find existence of video in the plex library.
         # TODO: Ensure this works. Messed with it a lot.
-        print(f"Searching for {video}")
+        print(f"[{counter}/{len(channelVideos)}] Searching for {video}")
+        counter += 1
         videoObject = searchPlexForVideo(plex, video, mediaType, youtubeLibrary)
         if videoObject:
             plexVideoObjects.append(videoObject[0])
@@ -103,11 +126,12 @@ def addVideosToPlexCollection(
     if collectionResults:
         collection = collectionResults[0]
         collection.addItems(videoObjects)
+        collection.sortUpdate(sort="custom")
     else:
         print(f"The collection does not exist. Creating a collection for {channelName}")
         # TODO: Remove newCollection. Required now for debugging.
         newCollection = plex.createCollection(
-            title=channelName, section=youtubeLibrary, items=videoObjects
+            title=channelName, section=youtubeLibrary, items=videoObjects, sort="custom"
         )
 
 
@@ -183,5 +207,12 @@ if __name__ == "__main__":
     videoObjects = findYoutubeVideosInPlex(
         plex, channelVideos, mediaType, youtubeLibrary
     )
+    # This sorts the videos in Descending order.
+    # Mimicking Youtube's video listing, most recent to oldest.
+    videoObjects.sort(key=lambda video: video.title, reverse=True)
+
+    # We must parse the date out of the youtube video title and apply it to the plex object
+    # otherwise, we won't be able to properly sort by release date.
+    videoObjects = setDatesFromTitles(videoObjects)
 
     addVideosToPlexCollection(plex, videoObjects, youtubeLibrary, channelName)
