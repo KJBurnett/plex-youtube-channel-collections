@@ -23,10 +23,6 @@ def setDatesFromTitles(videoObjects: list[Movie], channelFolder: str) -> list[Mo
     return videoObjects
 
 
-def getVideoPathFromVideoObject(videoObject: Movie, channelFolder: str) -> str:
-    return f"{os.path.join(channelFolder, videoObject.title)}.mkv"
-
-
 # Expected file name format: "20120727 - Ferrari Dino 246 GTS - (81s) [qZbpzYNEziY]"
 # Split by first whitespace to get the date string.
 # Then, parse the year, month, and day out of the singular no-space string.
@@ -86,9 +82,8 @@ def findYoutubeVideosInPlex(
     plexVideoObjects = []
 
     counter = 1
-    for video in channelVideos[:10]:
+    for video in channelVideos:
         # Find existence of video in the plex library.
-        # TODO: Ensure this works. Messed with it a lot.
         print(f"[{counter}/{len(channelVideos)}] Searching for {video}")
         counter += 1
         videoObject = searchPlexForVideo(plex, video, mediaType, youtubeLibrary)
@@ -140,16 +135,13 @@ def addVideosToPlexCollection(
         collection.sortUpdate(sort="custom")
     else:
         print(f"The collection does not exist. Creating a collection for {channelName}")
-        # TODO: Remove newCollection. Required now for debugging.
-        newCollection = plex.createCollection(
+        plex.createCollection(
             title=channelName, section=youtubeLibrary, items=videoObjects, sort="custom"
         )
 
 
-# Error checking for initial startup of the script.
-# We require these environment variables to ensure a smooth and successful run.
-def environmentVariableError(missingVariable: str) -> None:
-    requiredVariables = {
+def getRequiredVariables() -> dict[str, str]:
+    return {
         "YOUTUBE_LIBRARY_NAME": "The name of your Youtube library in Plex. eg: 'Youtube'",
         "YOUTUBE_VIDEO_EXTENSION": "The file extension of your Youtube videos. eg: '.mkv'",
         "MEDIA_TYPE": "The type of media your Youtube videos are classified as in Plex. eg: 'movie'",
@@ -157,6 +149,18 @@ def environmentVariableError(missingVariable: str) -> None:
         "PLEX_TOKEN": "The token required to access your plex api. See https://tinyurl.com/get-plex-token",
         "YOUTUBE_PATH": "The filepath to your Youtube library. eg: 'Z:\\Youtube'",
     }
+
+
+def getOptionalVariables() -> dict[str, str]:
+    return {
+        "OPTIMIZE_SCAN": "Optional 'true' or 'false'. If true, successfully scanned files will be added to a 'plex-scanned.json' and will be skipped during runtime."
+    }
+
+
+# Error checking for initial startup of the script.
+# We require these environment variables to ensure a smooth and successful run.
+def environmentVariableError(missingVariable: str) -> None:
+    requiredVariables = getRequiredVariables()
     errorMessage = f"\nError. Missing environment variable '{missingVariable}'. You must supply all required environment variables.\n\nRequired Environment Variables:{json.dumps(requiredVariables, indent=4, separators=(',', ': '))}"
     print(errorMessage)
     sys.exit()
@@ -188,6 +192,8 @@ if __name__ == "__main__":
     if not youtubePath:
         environmentVariableError("YOUTUBE_PATH")
         sys.exit()
+    optimizeScans = os.environ.get("OPTIMIZE_SCANS")
+    optimizeScans = True if optimizeScans == "true" else False
 
     print("All environment variables successfully loaded.\n")
 
@@ -198,7 +204,7 @@ if __name__ == "__main__":
 
     # ===== Let's get to work ===== #
     validChannelFolders = getValidChannelFolders(youtubePath)
-    validChannelFolders = validChannelFolders[:10]
+    validChannelFolders = validChannelFolders
 
     # channelFolder = "Z:\Youtube\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]"
     # channelFolder = os.path.join(

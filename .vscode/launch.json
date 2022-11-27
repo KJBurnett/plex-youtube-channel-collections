@@ -19,7 +19,8 @@
                 "MEDIA_TYPE": "movie",
                 "YOUTUBE_VIDEO_EXTENSION": ".mkv",
                 "SECONDS_TO_WAIT": "3600",
-                "PYTHONWARNINGS": "ignore:Unverified HTTPS request"
+                "PYTHONWARNINGS": "ignore:Unverified HTTPS request",
+                "OPTIMIZE_SCANS": "true"
             }
         },
         {
@@ -37,7 +38,8 @@
                 "MEDIA_TYPE": "movie",
                 "YOUTUBE_VIDEO_EXTENSION": ".mkv",
                 "SECONDS_TO_WAIT": "3600",
-                "PYTHONWARNINGS": "ignore:Unverified HTTPS request"
+                "PYTHONWARNINGS": "ignore:Unverified HTTPS request",
+                "OPTIMIZE_SCANS": "true"
             }
         },
         {
@@ -55,7 +57,8 @@
                 "MEDIA_TYPE": "movie",
                 "YOUTUBE_VIDEO_EXTENSION": ".mkv",
                 "SECONDS_TO_WAIT": "3600",
-                "PYTHONWARNINGS": "ignore:Unverified HTTPS request"
+                "PYTHONWARNINGS": "ignore:Unverified HTTPS request",
+                "OPTIMIZE_SCANS": "true"
             }
         }
     ]
