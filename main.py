@@ -5,18 +5,10 @@ import json
 import os
 import sys
 from plexapi.server import PlexServer
-from plexapi.collection import Collection
 from plexapi.video import Movie
 import requests
 import time
 from datetime import datetime
-
-
-# def updateModifiedTime(videoPath: str):
-#     date = getDateFromTitle(videoPath)
-#     modTime = time.mktime(date.timetuple())
-
-#     os.utime(fileLocation, (modTime, modTime))
 
 
 def setDatesFromTitles(videoObjects: list[Movie], channelFolder: str) -> list[Movie]:
@@ -29,6 +21,10 @@ def setDatesFromTitles(videoObjects: list[Movie], channelFolder: str) -> list[Mo
             (modTime, modTime),
         )
     return videoObjects
+
+
+def getVideoPathFromVideoObject(videoObject: Movie, channelFolder: str) -> str:
+    return f"{os.path.join(channelFolder, videoObject.title)}.mkv"
 
 
 # Expected file name format: "20120727 - Ferrari Dino 246 GTS - (81s) [qZbpzYNEziY]"
@@ -72,7 +68,9 @@ def getChannelNameFromFolder(channelFolder: str) -> str:
 # A valid channel folder: TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]
 # An invalid channel folder: TheStradman
 def getValidChannelFolders(youtubePath: str) -> list[str]:
-    folders = os.listdir(youtubePath)
+    # Use list comprehension to ensure the folders are full file paths.
+    # os.listdir() only returns the folder/filenames. Not full path.
+    folders = [os.path.join(youtubePath, folder) for folder in os.listdir(youtubePath)]
     validFolders = filter(
         lambda folder: "[" in folder and folder.endswith("]"), folders
     )
@@ -151,7 +149,7 @@ def addVideosToPlexCollection(
 # Error checking for initial startup of the script.
 # We require these environment variables to ensure a smooth and successful run.
 def environmentVariableError(missingVariable: str) -> None:
-    variables = {
+    requiredVariables = {
         "YOUTUBE_LIBRARY_NAME": "The name of your Youtube library in Plex. eg: 'Youtube'",
         "YOUTUBE_VIDEO_EXTENSION": "The file extension of your Youtube videos. eg: '.mkv'",
         "MEDIA_TYPE": "The type of media your Youtube videos are classified as in Plex. eg: 'movie'",
@@ -159,7 +157,7 @@ def environmentVariableError(missingVariable: str) -> None:
         "PLEX_TOKEN": "The token required to access your plex api. See https://tinyurl.com/get-plex-token",
         "YOUTUBE_PATH": "The filepath to your Youtube library. eg: 'Z:\\Youtube'",
     }
-    errorMessage = f"\nError. Missing environment variable '{missingVariable}'. You must supply all required environment variables.\n\nRequired Environment Variables:{json.dumps(variables, indent=4, separators=(',', ': '))}"
+    errorMessage = f"\nError. Missing environment variable '{missingVariable}'. You must supply all required environment variables.\n\nRequired Environment Variables:{json.dumps(requiredVariables, indent=4, separators=(',', ': '))}"
     print(errorMessage)
     sys.exit()
 
@@ -200,33 +198,31 @@ if __name__ == "__main__":
 
     # ===== Let's get to work ===== #
     validChannelFolders = getValidChannelFolders(youtubePath)
+    validChannelFolders = validChannelFolders[:10]
 
-    # for validChannelFolder in validChannelFolders:
-    #     channelName = getChannelNameFromFolder(channelFolder=validChannelFolder)
-    #     channelVideos = getVideosFromChannelFolder(channelFolder=validChannelFolder)
-
-    #     videoObjects = findYoutubeVideosInPlex(
-    #         channelVideos, mediaType, sectionId=youtubeLibrary
-    #     )
-    #     addToPlexCollection(plex, videoObjects, youtubeLibrary, channelName)
-
-    # ======================================== #
-    # For testing/debugging
     # channelFolder = "Z:\Youtube\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]"
-    channelFolder = "\\\\100.68.163.44\\DrivePool\\Youtube\\Winding Road Magazine [UCeiBi8gptAwNoIHrZ3OUUbw]"
+    # channelFolder = os.path.join(
+    #     youtubePath, "Winding Road Magazine [UCeiBi8gptAwNoIHrZ3OUUbw]"
+    # )
+    # validChannelFolders = [channelFolder]
 
-    channelName = getChannelNameFromFolder(channelFolder=channelFolder)
-    channelVideos = getVideosFromChannelFolder(channelFolder=channelFolder)
+    print(f"Found {len(validChannelFolders)} channel(s) to sync.\n")
 
-    videoObjects = findYoutubeVideosInPlex(
-        plex, channelVideos, mediaType, youtubeLibrary
-    )
-    # This sorts the videos in Descending order.
-    # Mimicking Youtube's video listing, most recent to oldest.
-    videoObjects.sort(key=lambda video: video.title, reverse=True)
+    for channelFolder in validChannelFolders:
+        channelName = getChannelNameFromFolder(channelFolder=channelFolder)
+        channelVideos = getVideosFromChannelFolder(channelFolder=channelFolder)
+        print(f"Parsing Channel: {channelName} with {len(channelVideos)} videos.")
 
-    # We must parse the date out of the youtube video title and apply it to the plex object
-    # otherwise, we won't be able to properly sort by release date.
-    videoObjects = setDatesFromTitles(videoObjects, channelFolder)
+        videoObjects = findYoutubeVideosInPlex(
+            plex, channelVideos, mediaType, youtubeLibrary
+        )
+        # This sorts the videos in Descending order.
+        # Mimicking Youtube's video listing, most recent to oldest.
+        videoObjects.sort(key=lambda video: video.title, reverse=True)
 
-    addVideosToPlexCollection(plex, videoObjects, youtubeLibrary, channelName)
+        # We must parse the date out of the youtube video title and apply it to the plex object
+        # otherwise, we won't be able to properly sort by release date.
+        videoObjects = setDatesFromTitles(videoObjects, channelFolder)
+
+        addVideosToPlexCollection(plex, videoObjects, youtubeLibrary, channelName)
+        print(f"Channel successfully converted to Collection in Plex.!\n")
