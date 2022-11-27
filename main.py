@@ -40,14 +40,30 @@ def getDateFromTitle(title: str) -> datetime:
 # Example:
 # Before: "Z:\Youtube\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]\20120727 - Ferrari Dino 246 GTS - (81s) [qZbpzYNEziY].mkv"
 # After: "20120727 - Ferrari Dino 246 GTS - (81s) [qZbpzYNEziY]"
-def getVideosFromChannelFolder(channelFolder: str) -> list[str]:
-    # TODO: Ensure this returns the desired videos list.
+def getVideosFromChannelFolder(channelFolder: str, optimizeScans: bool) -> list[str]:
     videos = [
         os.path.basename(video.replace(".mkv", ""))
         for video in os.listdir(channelFolder)
         if video.endswith(".mkv")
     ]
+    if optimizeScans:
+        videos = filterAlreadyScannedVideos(videos, channelFolder)
     return videos
+
+
+def filterAlreadyScannedVideos(videos: list[str], channelFolder: str) -> list[str]:
+    scannedVideosPath = os.path.join(channelFolder, "scannedVideos.txt")
+    if os.path.isfile(scannedVideosPath):
+        # If optimizeScans=True and the scannedvideos.txt exists
+        # then we need to check if any videos exist in the scannedVideos log.
+        scannedVideos = getScannedVideos(scannedVideosPath)
+        [videos.remove(video) for video in videos if video in scannedVideos]
+    return videos
+
+
+def getScannedVideos(scannedVideosPath: str) -> list[str]:
+    with open(scannedVideosPath) as videosFile:
+        return videosFile.readlines()
 
 
 # Return the channel name from the cahnnelFolder.
@@ -166,6 +182,19 @@ def environmentVariableError(missingVariable: str) -> None:
     sys.exit()
 
 
+def saveVideosToScannedVideosLog(channelVideos: list[str], channelFolder: str) -> None:
+    scannedVideosPath = os.path.join(channelFolder, "scannedVideos.txt")
+    scannedVideos = getScannedVideos(scannedVideosPath)
+    [
+        scannedVideos.append(channelVideo)
+        for channelVideo in channelVideos
+        if channelVideo not in scannedVideos
+    ]
+    with open(scannedVideosPath, "w") as f:
+        for video in scannedVideos:
+            f.write(f"{video}\n")
+
+
 if __name__ == "__main__":
     # Ensure the environment variables exist. Otherwise throw an error and quit.
     youtubeLibrary = os.environ.get("YOUTUBE_LIBRARY_NAME")
@@ -216,7 +245,9 @@ if __name__ == "__main__":
 
     for channelFolder in validChannelFolders:
         channelName = getChannelNameFromFolder(channelFolder=channelFolder)
-        channelVideos = getVideosFromChannelFolder(channelFolder=channelFolder)
+        channelVideos = getVideosFromChannelFolder(
+            channelFolder=channelFolder, optimizeScans=optimizeScans
+        )
         print(f"Parsing Channel: {channelName} with {len(channelVideos)} videos.")
 
         videoObjects = findYoutubeVideosInPlex(
@@ -231,4 +262,8 @@ if __name__ == "__main__":
         videoObjects = setDatesFromTitles(videoObjects, channelFolder)
 
         addVideosToPlexCollection(plex, videoObjects, youtubeLibrary, channelName)
+
+        if optimizeScans:
+            saveVideosToScannedVideosLog(channelVideos, channelFolder)
+
         print(f"Channel successfully converted to Collection in Plex.!\n")
