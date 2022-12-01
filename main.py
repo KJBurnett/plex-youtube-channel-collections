@@ -9,6 +9,7 @@ from plexapi.video import Movie
 import requests
 import time
 from datetime import datetime
+import re
 
 
 def setDatesFromTitles(videoObjects: list[Movie], channelFolder: str) -> list[Movie]:
@@ -16,10 +17,13 @@ def setDatesFromTitles(videoObjects: list[Movie], channelFolder: str) -> list[Mo
         videoObject.originallyAvailableAt = getDateFromTitle(videoObject.title)
         videoPath = f"{os.path.join(channelFolder, videoObject.title)}.mkv"
         modTime = time.mktime(getDateFromTitle(videoObject.title).timetuple())
-        os.utime(
-            videoPath,
-            (modTime, modTime),
-        )
+        if os.path.isfile(videoPath):
+            # Ensure the file exists. Sometimes the file gets modified during scanning process and is modified or removed.
+            # If the video file exists, updat the "Modified Date" metadata to match the actual uploaded-to-youtube-datetime which is parsed from the title from yt-dlp.
+            os.utime(
+                videoPath,
+                (modTime, modTime),
+            )
     return videoObjects
 
 
@@ -44,7 +48,8 @@ def getVideosFromChannelFolder(channelFolder: str, optimizeScans: bool) -> list[
     videos = [
         os.path.basename(video.replace(".mkv", ""))
         for video in os.listdir(channelFolder)
-        if video.endswith(".mkv")
+        # Ensure the extension is .mkv, but also ensure the video is not still "in progress" wtih ffmpeg.
+        if video.endswith(".mkv") and not video.endswith(".temp.mkv")
     ]
     if optimizeScans:
         videos = filterAlreadyScannedVideos(videos, channelFolder)
@@ -57,13 +62,26 @@ def filterAlreadyScannedVideos(videos: list[str], channelFolder: str) -> list[st
         # If optimizeScans=True and the scannedvideos.txt exists
         # then we need to check if any videos exist in the scannedVideos log.
         scannedVideos = getScannedVideos(scannedVideosPath)
-        [videos.remove(video) for video in videos if video in scannedVideos]
+        newVideos = list(filter(lambda video: isNewVideo(video, scannedVideos), videos))
+        return newVideos
     return videos
 
 
+# If the video guid is found in scannedVideos, then we've already scanned this
+# video before. Don't include it in our run.
+def isNewVideo(video: str, scannedVideos: list[str]) -> bool:
+    if getGuidFromTitle(video) in scannedVideos:
+        print(f"{video} already scanned into Plex, skipping.")
+        return False
+    return True
+
+
 def getScannedVideos(scannedVideosPath: str) -> list[str]:
+    scannedVideos = []
     with open(scannedVideosPath) as videosFile:
-        return videosFile.readlines()
+        for line in videosFile:
+            scannedVideos.append(line.rstrip("\n"))
+    return scannedVideos
 
 
 # Return the channel name from the cahnnelFolder.
@@ -108,15 +126,19 @@ def findYoutubeVideosInPlex(
             print("Video found in Plex!")
         else:
             print("Error. Video was not found in Plex.")
+        if counter % 100 == 0:
+            # Wait for 30 seconds to reduce load on the plexapi
+            print("Sleeping for 30 seconds every 100th query to reduce plexapi load.")
+            time.sleep(30)
     return plexVideoObjects
 
 
 def searchPlexForVideo(
     plex: PlexServer, video: str, mediaType: str, youtubeLibrary: str
 ):
-    maxRetries = 5
+    maxRetries = 7
     attempt = 1
-    waitInSeconds = 2
+    waitInSeconds = 30
     querySucess = False
     videoObject = None
     while attempt <= maxRetries and not querySucess:
@@ -126,8 +148,9 @@ def searchPlexForVideo(
             )
             querySucess = True
         except Exception as e:
+            print(f"\n Caught Exception: {e}")
             print(
-                f"Error. The Plex server likely timed out from too many requests. Waiting for {waitInSeconds} before trying again.\nAttempt {attempt}/{maxRetries}\n Caught Exception: {e}"
+                f"Error. The Plex server likely timed out from too many requests. Waiting for {waitInSeconds} seconds before trying again.\nAttempt {attempt}/{maxRetries} failed."
             )
             attempt += 1
             time.sleep(waitInSeconds)
@@ -184,15 +207,28 @@ def environmentVariableError(missingVariable: str) -> None:
 
 def saveVideosToScannedVideosLog(channelVideos: list[str], channelFolder: str) -> None:
     scannedVideosPath = os.path.join(channelFolder, "scannedVideos.txt")
-    scannedVideos = getScannedVideos(scannedVideosPath)
-    [
-        scannedVideos.append(channelVideo)
-        for channelVideo in channelVideos
-        if channelVideo not in scannedVideos
-    ]
+    scannedVideos = []
+    if os.path.isfile(scannedVideosPath):
+        scannedVideos = getScannedVideos(scannedVideosPath)
+        [
+            scannedVideos.append(getGuidFromTitle(channelVideo))
+            for channelVideo in channelVideos
+            if getGuidFromTitle(channelVideo) not in scannedVideos
+        ]
+    else:
+        scannedVideos = channelVideos
+
     with open(scannedVideosPath, "w") as f:
         for video in scannedVideos:
-            f.write(f"{video}\n")
+            f.write(f"{getGuidFromTitle(video)}\n")
+
+
+def getGuidFromTitle(video: str) -> str:
+    if "[" in video and video.endswith("]"):
+        m = re.findall(r"\[(.*?)\]", video)
+        if m is not None:
+            return m[len(m) - 1]  # Return the last [ ] group in the string.
+    return video
 
 
 if __name__ == "__main__":
@@ -233,22 +269,19 @@ if __name__ == "__main__":
 
     # ===== Let's get to work ===== #
     validChannelFolders = getValidChannelFolders(youtubePath)
-    validChannelFolders = validChannelFolders
-
-    # channelFolder = "Z:\Youtube\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]"
-    # channelFolder = os.path.join(
-    #     youtubePath, "Winding Road Magazine [UCeiBi8gptAwNoIHrZ3OUUbw]"
-    # )
-    # validChannelFolders = [channelFolder]
-
     print(f"Found {len(validChannelFolders)} channel(s) to sync.\n")
 
     for channelFolder in validChannelFolders:
         channelName = getChannelNameFromFolder(channelFolder=channelFolder)
+
+        print(f"Parsing Channel: {channelName}")
         channelVideos = getVideosFromChannelFolder(
             channelFolder=channelFolder, optimizeScans=optimizeScans
         )
-        print(f"Parsing Channel: {channelName} with {len(channelVideos)} videos.")
+
+        print(f"Found {len(channelVideos)} new videos to scan.\n")
+        if len(channelVideos) < 1:
+            continue
 
         videoObjects = findYoutubeVideosInPlex(
             plex, channelVideos, mediaType, youtubeLibrary
@@ -261,9 +294,10 @@ if __name__ == "__main__":
         # otherwise, we won't be able to properly sort by release date.
         videoObjects = setDatesFromTitles(videoObjects, channelFolder)
 
-        addVideosToPlexCollection(plex, videoObjects, youtubeLibrary, channelName)
+        if len(videoObjects):
+            addVideosToPlexCollection(plex, videoObjects, youtubeLibrary, channelName)
 
         if optimizeScans:
             saveVideosToScannedVideosLog(channelVideos, channelFolder)
 
-        print(f"Channel successfully converted to Collection in Plex.!\n")
+        print(f"Channel successfully added to Collection in Plex!\n")
