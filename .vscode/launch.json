@@ -20,7 +20,8 @@
                 "YOUTUBE_VIDEO_EXTENSION": ".mkv",
                 "SECONDS_TO_WAIT": "3600",
                 "PYTHONWARNINGS": "ignore:Unverified HTTPS request",
-                "OPTIMIZE_SCANS": "true"
+                "OPTIMIZE_SCANS": "true",
+                "DOWNLOAD_AVATARS_AND_BANNERS": "true"
             }
         },
         {
@@ -39,7 +40,8 @@
                 "YOUTUBE_VIDEO_EXTENSION": ".mkv",
                 "SECONDS_TO_WAIT": "3600",
                 "PYTHONWARNINGS": "ignore:Unverified HTTPS request",
-                "OPTIMIZE_SCANS": "true"
+                "OPTIMIZE_SCANS": "true",
+                "DOWNLOAD_AVATARS_AND_BANNERS": "true"
             }
         },
         {
