@@ -53,7 +53,7 @@
             "justMyCode": true,
             "env": {
                 "PLEX_URL": "https://localhost:32400",
-                "PLEX_TOKEN": "<Insert-Plex-Token",
+                "PLEX_TOKEN": "<Insert-Plex-Token>",
                 "YOUTUBE_PATH": "J:\\Youtube",
                 "YOUTUBE_LIBRARY_NAME": "Youtube",
                 "MEDIA_TYPE": "movie",
