@@ -1,3 +1,5 @@
 plexapi
 requests
 black
+pytest
+pytest-mock
