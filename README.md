@@ -23,14 +23,16 @@ Example Configuration:
             "justMyCode": true,
             "env": {
                 "PLEX_URL": "https://localhost:32400", // 32400 is the default Plex port, but yours may be different.
-                "PLEX_TOKEN": "<Insert-Plex-Token>",
+                "PLEX_TOKEN": "<Insert-Plex-Token>", // See https://tinyurl.com/get-plex-token 
                 "YOUTUBE_PATH": "Z:\Youtube",
                 "YOUTUBE_LIBRARY_NAME": "Youtube", // Set this to what you named your Youtube Library in Plex.
                 "MEDIA_TYPE": "movie", // In the Plex Library Creation UI, choose "Other Videos" for the Library video file types.
                 "YOUTUBE_VIDEO_EXTENSION": ".mkv",
                 "SECONDS_TO_WAIT": "3600",
                 "PYTHONWARNINGS": "ignore:Unverified HTTPS request",
-                "OPTIMIZE_SCANS": "true"
+                "OPTIMIZE_SCANS": "true", // OPTIONAL
+                "DOWNLOAD_AVATARS_AND_BANNERS": "true", // OPTIONAL
+                "YTDLP_PROCESS_PATH": "J:\\Youtube\\youtube-dlp.exe" // OPTIONAL
             }
         }
 ```
