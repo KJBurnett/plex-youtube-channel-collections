@@ -24,7 +24,7 @@ Example Configuration:
             "env": {
                 "PLEX_URL": "https://localhost:32400", // 32400 is the default Plex port, but yours may be different.
                 "PLEX_TOKEN": "<Insert-Plex-Token>",
-                "YOUTUBE_PATH": "J:\\Youtube",
+                "YOUTUBE_PATH": "Z:\Youtube",
                 "YOUTUBE_LIBRARY_NAME": "Youtube", // Set this to what you named your Youtube Library in Plex.
                 "MEDIA_TYPE": "movie", // In the Plex Library Creation UI, choose "Other Videos" for the Library video file types.
                 "YOUTUBE_VIDEO_EXTENSION": ".mkv",
@@ -49,7 +49,7 @@ Example Configuration:
 Note: These configurations are very extensive. If you want to speed up downloads, disable --get-comments. 
 ```
 - Create a channel_list.txt file with a list of youtube channel urls you want to download
-- Run `Z:\Youtube\yt-dlp.exe --config-location "J:\Youtube\config.conf"`
+- Run `Z:\Youtube\yt-dlp.exe --config-location "Z:\Youtube\config.conf"`
 
 ## Create a .plexignore file in your Youtube Library
 - It's recommended that you create a `.plexignore` file in your Youtube directory to explicitly ignore *.temp.mkv files. This ensures Plex does not attempt to scan temp mkvs while the yt-dlp script runs.
