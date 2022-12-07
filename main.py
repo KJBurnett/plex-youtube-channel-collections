@@ -11,6 +11,10 @@ import time
 from datetime import datetime
 import re
 
+# Internal modules
+import avatarProcessor
+import utils
+
 
 def setDatesFromTitles(videoObjects: list[Movie], channelFolder: str) -> list[Movie]:
     for videoObject in videoObjects:
@@ -70,7 +74,7 @@ def filterAlreadyScannedVideos(videos: list[str], channelFolder: str) -> list[st
 # If the video guid is found in scannedVideos, then we've already scanned this
 # video before. Don't include it in our run.
 def isNewVideo(video: str, scannedVideos: list[str]) -> bool:
-    if getGuidFromTitle(video) in scannedVideos:
+    if utils.getGuidFromTitle(video) in scannedVideos:
         print(f"{video} already scanned into Plex, skipping.")
         return False
     return True
@@ -84,19 +88,12 @@ def getScannedVideos(scannedVideosPath: str) -> list[str]:
     return scannedVideos
 
 
-# Return the channel name from the cahnnelFolder.
-# Example:
-# Before: "Z:\\Youtube\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]"
-# After: "TheStradman"
-def getChannelNameFromFolder(channelFolder: str) -> str:
-    return os.path.basename(channelFolder).split(" [")[0]
-
-
 # Ensure we're looking at specifically Youtube Channel Folders.
 # We determine this by ensuring there is a unique guid at the end of the folder name.
 # Example:
 # A valid channel folder: TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]
 # An invalid channel folder: TheStradman
+# A channelFolder is the full filePath. Example: 'J:\\Youtube\\100 Percent Zelda [UC4It_xPxQyCpyTJshlAQSgA]'
 def getValidChannelFolders(youtubePath: str) -> list[str]:
     # Use list comprehension to ensure the folders are full file paths.
     # os.listdir() only returns the folder/filenames. Not full path.
@@ -211,24 +208,16 @@ def saveVideosToScannedVideosLog(channelVideos: list[str], channelFolder: str) -
     if os.path.isfile(scannedVideosPath):
         scannedVideos = getScannedVideos(scannedVideosPath)
         [
-            scannedVideos.append(getGuidFromTitle(channelVideo))
+            scannedVideos.append(utils.getGuidFromTitle(channelVideo))
             for channelVideo in channelVideos
-            if getGuidFromTitle(channelVideo) not in scannedVideos
+            if utils.getGuidFromTitle(channelVideo) not in scannedVideos
         ]
     else:
         scannedVideos = channelVideos
 
     with open(scannedVideosPath, "w") as f:
         for video in scannedVideos:
-            f.write(f"{getGuidFromTitle(video)}\n")
-
-
-def getGuidFromTitle(video: str) -> str:
-    if "[" in video and video.endswith("]"):
-        m = re.findall(r"\[(.*?)\]", video)
-        if m is not None:
-            return m[len(m) - 1]  # Return the last [ ] group in the string.
-    return video
+            f.write(f"{utils.getGuidFromTitle(video)}\n")
 
 
 if __name__ == "__main__":
@@ -259,6 +248,12 @@ if __name__ == "__main__":
         sys.exit()
     optimizeScans = os.environ.get("OPTIMIZE_SCANS")
     optimizeScans = True if optimizeScans == "true" else False
+    ytdlpProcessPath = os.environ.get("YTDLP_PROCESS_PATH")
+    # Only download avatars and banners if the ytdlpProcessPath environment variable exists.
+    downloadAvatarsAndBanners = (
+        os.environ.get("DOWNLOAD_AVATARS_AND_BANNERS") if ytdlpProcessPath else False
+    )
+    downloadAvatarsAndBanners = True if downloadAvatarsAndBanners == "true" else False
 
     print("All environment variables successfully loaded.\n")
 
@@ -272,7 +267,7 @@ if __name__ == "__main__":
     print(f"Found {len(validChannelFolders)} channel(s) to sync.\n")
 
     for channelFolder in validChannelFolders:
-        channelName = getChannelNameFromFolder(channelFolder=channelFolder)
+        channelName = utils.getChannelNameFromFolder(channelFolder=channelFolder)
 
         print(f"Parsing Channel: {channelName}")
         channelVideos = getVideosFromChannelFolder(
@@ -296,6 +291,9 @@ if __name__ == "__main__":
 
         if len(videoObjects):
             addVideosToPlexCollection(plex, videoObjects, youtubeLibrary, channelName)
+
+        if downloadAvatarsAndBanners and ytdlpProcessPath:
+            avatarProcessor.getChannelAvatarsAndBanners(channelFolder, ytdlpProcessPath)
 
         if optimizeScans:
             saveVideosToScannedVideosLog(channelVideos, channelFolder)
