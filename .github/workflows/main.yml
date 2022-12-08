@@ -26,4 +26,3 @@ jobs:
           emoji: false
           verbose: false
           job-summary: true
-      - name: Run Unit Tests And Compile Report
