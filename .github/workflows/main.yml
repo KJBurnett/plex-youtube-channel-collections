@@ -13,10 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Checkout Python ${{ matrix.python-version }}
-      
-      - uses: actions/setup-python@v4
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+
       - name: Install Dependencies
         run: pip install pytest pytest-md pytest-emoji
         
@@ -25,4 +25,3 @@ jobs:
           emoji: false
           verbose: false
           job-summary: true
-
