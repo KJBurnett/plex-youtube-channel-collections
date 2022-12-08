@@ -77,3 +77,4 @@ Additionally, you will find the video files's `modified date` property to be cha
 - ✅ Create in-depth documentation for utilizing yt-dlp in conjunction with this script. The video files must be organized and titled correctly or this script will not work.
 - [IN PROGRESS] Add a flag to automatically pull the Youtube Channl avatar and banner, and automatically set the Plex Collection cover art to these images (super cool)
 - [IN PROGRESS] Implement unit tests using pytest
+- [IN PROGRESS] Add Github Actions to Pull Requests
