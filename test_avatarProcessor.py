@@ -4,8 +4,7 @@ import avatarProcessor
 def test_downloadAvatarsAndBannersFromChannel(mocker):
     channelUrl = "https://youtube.com/channel/UC21Kozr_K0yDM-VjoihG9Aw"
     ytdlpPath = "J:\\Youtube\\youtube-dlp.exe"
-    # channelFolder = "J:\\Youtube\\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]"
-    channelFolder = r"C:\Users\kyler\Workspace\plex-youtube-channel-collections"
+    channelFolder = "J:\\Youtube\\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]"
 
     # We must mock this function, otherwise it will make network calls.
     mocker.patch(

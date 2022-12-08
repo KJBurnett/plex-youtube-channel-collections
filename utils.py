@@ -12,7 +12,15 @@ def getGuidFromTitle(title: str) -> str:
 
 # Return the channel name from the cahnnelFolder.
 # Example:
-# Before: "Z:\\Youtube\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]"
+# Before: "Z:\\Youtube\\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]"
 # After: "TheStradman"
 def getChannelNameFromFolder(channelFolder: str) -> str:
     return os.path.basename(channelFolder).split(" [")[0]
+
+
+# Returns a list of file names from the supplied folderPath.
+# If the folderPath does not exist, return an empty array.
+def getFileNamesFromDirectory(folderPath: str) -> list[str]:
+    if os.path.exists(folderPath):
+        return os.listdir(folderPath)
+    return []
