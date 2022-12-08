@@ -1,5 +1,6 @@
 import main
 from datetime import datetime
+import os
 
 
 # We expect the date to be prefixed to the title,
@@ -17,7 +18,12 @@ def test_getDateFromTitle_if_valid_title():
 
 def test_getVideosFromChannelFolder_if_optimizeScans_is_false(mocker):
     bogusChannelFolder = "hiIAmBogus"
-    bogusVideoTitle = "Z:\\Youtube\\TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]\\20120727 - Ferrari Dino 246 GTS - (81s) [qZbpzYNEziY].mkv"
+    bogusVideoTitle = os.path.join(
+        "Z:",
+        "Youtube",
+        "TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]",
+        "20120727 - Ferrari Dino 246 GTS - (81s) [qZbpzYNEziY].mkv",
+    )
     bogusFilesList = [bogusVideoTitle]
     expectedResult = ["20120727 - Ferrari Dino 246 GTS - (81s) [qZbpzYNEziY]"]
     mocker.patch("utils.getFileNamesFromDirectory", return_value=bogusFilesList)
