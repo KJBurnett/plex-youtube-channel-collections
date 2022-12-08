@@ -21,6 +21,7 @@ jobs:
         run: pip install pytest pytest-md pytest-emoji
         
       - uses: pavelzw/pytest-action@v2
+        name: Run Unit Tests And Compile Report
         with:
           emoji: false
           verbose: false
