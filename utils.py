@@ -24,3 +24,9 @@ def getFileNamesFromDirectory(folderPath: str) -> list[str]:
     if os.path.exists(folderPath):
         return os.listdir(folderPath)
     return []
+
+
+def getDirectoriesFromFilePath(filePath: str) -> list[str]:
+    if os.path.exists(filePath):
+        return os.listdir(filePath)
+    return []

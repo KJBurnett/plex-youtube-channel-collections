@@ -62,7 +62,8 @@
                 "PYTHONWARNINGS": "ignore:Unverified HTTPS request",
                 "OPTIMIZE_SCANS": "true",
                 "DOWNLOAD_AVATARS_AND_BANNERS": "true",
-                "YTDLP_PROCESS_PATH": "J:\\Youtube\\youtube-dlp.exe"
+                "YTDLP_PROCESS_PATH": "J:\\Youtube\\youtube-dlp.exe",
+                "ONLY_CHANNELS": "J:\\Youtube\\plex_channels.txt"
             }
         },
         {

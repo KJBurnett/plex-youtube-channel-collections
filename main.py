@@ -81,11 +81,19 @@ def isNewVideo(video: str, scannedVideos: list[str]) -> bool:
 
 
 def getScannedVideos(scannedVideosPath: str) -> list[str]:
-    scannedVideos = []
-    with open(scannedVideosPath) as videosFile:
-        for line in videosFile:
-            scannedVideos.append(line.rstrip("\n"))
-    return scannedVideos
+    return getLinesFromFileAsArray(scannedVideosPath)
+
+
+def getOnlyChannelsGuids(channelsListPath: str) -> list[str]:
+    return getLinesFromFileAsArray(channelsListPath)
+
+
+def getLinesFromFileAsArray(fileName: str) -> list[str]:
+    lines = []
+    with open(fileName) as textFile:
+        for line in textFile:
+            lines.append(line.rstrip("\n"))
+    return lines
 
 
 # Ensure we're looking at specifically Youtube Channel Folders.
@@ -94,13 +102,26 @@ def getScannedVideos(scannedVideosPath: str) -> list[str]:
 # A valid channel folder: TheStradman [UC21Kozr_K0yDM-VjoihG9Aw]
 # An invalid channel folder: TheStradman
 # A channelFolder is the full filePath. Example: 'J:\\Youtube\\100 Percent Zelda [UC4It_xPxQyCpyTJshlAQSgA]'
-def getValidChannelFolders(youtubePath: str) -> list[str]:
+def getValidChannelFolders(
+    youtubePath: str, onlyChannels: str | None = None
+) -> list[str]:
     # Use list comprehension to ensure the folders are full file paths.
     # os.listdir() only returns the folder/filenames. Not full path.
-    folders = [os.path.join(youtubePath, folder) for folder in os.listdir(youtubePath)]
+    folders = [
+        os.path.join(youtubePath, folder)
+        for folder in utils.getDirectoriesFromFilePath(youtubePath)
+    ]
     validFolders = filter(
         lambda folder: "[" in folder and folder.endswith("]"), folders
     )
+
+    if onlyChannels:
+        onlyScanTheseChannels = getOnlyChannelsGuids(onlyChannels)
+        validFolders = filter(
+            lambda folder: utils.getGuidFromTitle(folder) in onlyScanTheseChannels,
+            list(validFolders),
+        )
+
     # Note filter is an iterable, so we need to convert it back into a list.
     return list(validFolders)
 
@@ -189,7 +210,8 @@ def getRequiredVariables() -> dict[str, str]:
 
 def getOptionalVariables() -> dict[str, str]:
     return {
-        "OPTIMIZE_SCAN": "Optional 'true' or 'false'. If true, successfully scanned files will be added to a 'plex-scanned.json' and will be skipped during runtime."
+        "OPTIMIZE_SCAN": "Optional 'true' or 'false'. If true, successfully scanned files will be added to a 'plex-scanned.json' and will be skipped during runtime.",
+        "ONLY_CHANNELS": "Optional, supply a filepath with a list of channel guids. Plex will only scan and update those channel folders. eg: Z:\\Youtube\\plex_channels.txt",
     }
 
 
@@ -254,6 +276,8 @@ if __name__ == "__main__":
         os.environ.get("DOWNLOAD_AVATARS_AND_BANNERS") if ytdlpProcessPath else False
     )
     downloadAvatarsAndBanners = True if downloadAvatarsAndBanners == "true" else False
+    onlyChannels = os.environ.get("ONLY_CHANNELS")
+    onlyChannels = onlyChannels if onlyChannels else None
 
     print("All environment variables successfully loaded.\n")
 
@@ -263,7 +287,7 @@ if __name__ == "__main__":
     plex = PlexServer(baseurl, token, session)
 
     # ===== Let's get to work ===== #
-    validChannelFolders = getValidChannelFolders(youtubePath)
+    validChannelFolders = getValidChannelFolders(youtubePath, onlyChannels)
     print(f"Found {len(validChannelFolders)} channel(s) to sync.\n")
 
     for channelFolder in validChannelFolders:
