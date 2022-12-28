@@ -15,6 +15,20 @@ import re
 import avatarProcessor
 import utils
 
+# The PlexServer Session. A global value.
+_plex: PlexServer
+
+
+def startPlexServerSession() -> PlexServer:
+    # Start a PlexServer API session.
+    session = requests.Session()
+    session.verify = False
+    _plex = PlexServer(
+        os.environ.get("PLEX_URL"), os.environ.get("PLEX_TOKEN"), session
+    )
+    print("== New Plex Server Session Started. ==")
+    return _plex
+
 
 def setDatesFromTitles(videoObjects: list[Movie], channelFolder: str) -> list[Movie]:
     for videoObject in videoObjects:
@@ -129,7 +143,7 @@ def getValidChannelFolders(
 # Search the Plex database for plex video objects of the youtube videos.
 # We have to search the Plex database for every single video file name, and retrieve its Plex library object.
 def findYoutubeVideosInPlex(
-    plex: PlexServer, channelVideos: list[str], mediaType: str, youtubeLibrary: str
+    channelVideos: list[str], mediaType: str, youtubeLibrary: str
 ) -> list[Movie]:
     plexVideoObjects = []
 
@@ -138,7 +152,7 @@ def findYoutubeVideosInPlex(
         # Find existence of video in the plex library.
         print(f"[{counter}/{len(channelVideos)}] Searching for {video}")
         counter += 1
-        videoObject = searchPlexForVideo(plex, video, mediaType, youtubeLibrary)
+        videoObject = searchPlexForVideo(_plex, video, mediaType, youtubeLibrary)
         if videoObject:
             plexVideoObjects.append(videoObject[0])
             print("Video found in Plex!")
@@ -146,8 +160,11 @@ def findYoutubeVideosInPlex(
             print("Error. Video was not found in Plex.")
         if counter % 100 == 0:
             # Wait for 30 seconds to reduce load on the plexapi
-            print("Sleeping for 30 seconds every 100th query to reduce plexapi load.")
-            time.sleep(30)
+            print(
+                "Sleeping for 1 minute every 100th query to reduce plexapi load and restarting Plex Server Session."
+            )
+            time.sleep(60)
+            startPlexServerSession()
     return plexVideoObjects
 
 
@@ -175,14 +192,19 @@ def searchPlexForVideo(
             waitInSeconds = (
                 waitInSeconds * 2
             )  # Increase the wait time if we have to wait again.
+
+            if attempt == 5:
+                print("On attempt 5, attempting to restart the PlexServer Session.")
+                startPlexServerSession()
+
     return videoObject
 
 
 def addVideosToPlexCollection(
-    plex: PlexServer, videoObjects, youtubeLibrary: str, channelName: str
+    videoObjects, youtubeLibrary: str, channelName: str
 ) -> None:
     # Check to see if the collection already exists.
-    collectionResults = plex.search(
+    collectionResults = _plex.search(
         channelName, mediatype="collection", sectionId=youtubeLibrary
     )
 
@@ -192,7 +214,7 @@ def addVideosToPlexCollection(
         collection.sortUpdate(sort="custom")
     else:
         print(f"The collection does not exist. Creating a collection for {channelName}")
-        plex.createCollection(
+        _plex.createCollection(
             title=channelName, section=youtubeLibrary, items=videoObjects, sort="custom"
         )
 
@@ -281,10 +303,7 @@ if __name__ == "__main__":
 
     print("All environment variables successfully loaded.\n")
 
-    # Start a PlexServer API session.
-    session = requests.Session()
-    session.verify = False
-    plex = PlexServer(baseurl, token, session)
+    _plex = startPlexServerSession()
 
     # ===== Let's get to work ===== #
     validChannelFolders = getValidChannelFolders(youtubePath, onlyChannels)
@@ -302,9 +321,7 @@ if __name__ == "__main__":
         if len(channelVideos) < 1:
             continue
 
-        videoObjects = findYoutubeVideosInPlex(
-            plex, channelVideos, mediaType, youtubeLibrary
-        )
+        videoObjects = findYoutubeVideosInPlex(channelVideos, mediaType, youtubeLibrary)
         # This sorts the videos in Descending order.
         # Mimicking Youtube's video listing, most recent to oldest.
         videoObjects.sort(key=lambda video: video.title, reverse=True)
@@ -314,7 +331,7 @@ if __name__ == "__main__":
         videoObjects = setDatesFromTitles(videoObjects, channelFolder)
 
         if len(videoObjects):
-            addVideosToPlexCollection(plex, videoObjects, youtubeLibrary, channelName)
+            addVideosToPlexCollection(videoObjects, youtubeLibrary, channelName)
 
         if downloadAvatarsAndBanners and ytdlpProcessPath:
             avatarProcessor.getChannelAvatarsAndBanners(channelFolder, ytdlpProcessPath)
