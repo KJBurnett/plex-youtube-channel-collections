@@ -6,8 +6,10 @@ import os
 import sys
 from plexapi.server import PlexServer
 from plexapi.video import Movie
+from plexapi.collection import Collection
 import requests
 import time
+import math
 from datetime import datetime
 import re
 
@@ -159,7 +161,7 @@ def searchPlexForVideo(
 
 def addVideosToPlexCollection(
     plex: PlexServer, videoObjects, youtubeLibrary: str, channelName: str
-) -> None:
+) -> Collection:
     # Check to see if the collection already exists.
     collectionResults = plex.search(
         channelName, mediatype="collection", sectionId=youtubeLibrary
@@ -169,11 +171,13 @@ def addVideosToPlexCollection(
         collection = collectionResults[0]
         collection.addItems(videoObjects)
         collection.sortUpdate(sort="custom")
+        return collection
     else:
         print(f"The collection does not exist. Creating a collection for {channelName}")
-        plex.createCollection(
+        collection = plex.createCollection(
             title=channelName, section=youtubeLibrary, items=videoObjects, sort="custom"
         )
+        return collection
 
 
 def getRequiredVariables() -> dict[str, str]:
@@ -220,7 +224,7 @@ def saveVideosToScannedVideosLog(channelVideos: list[str], channelFolder: str) -
             f.write(f"{utils.getGuidFromTitle(video)}\n")
 
 
-if __name__ == "__main__":
+def run():
     # Ensure the environment variables exist. Otherwise throw an error and quit.
     youtubeLibrary = os.environ.get("YOUTUBE_LIBRARY_NAME")
     if not youtubeLibrary:
@@ -266,36 +270,75 @@ if __name__ == "__main__":
     validChannelFolders = getValidChannelFolders(youtubePath)
     print(f"Found {len(validChannelFolders)} channel(s) to sync.\n")
 
+    startTime = time.time()
+    library = plex.library.section(youtubeLibrary)
+    # Large operation but only needs to be done once (13,000 files took about 38 seconds).
+    print(
+        f"Getting all youtube videos from library '{youtubeLibrary}'. This can take up to a minute."
+    )
+    allYoutubeVideos = library.all()
+    print(
+        f"Found: {len(allYoutubeVideos)} videos in Plex library '{youtubeLibrary}!\nTook {math.trunc(time.time() - startTime)} seconds to complete.\n"
+    )
+
     for channelFolder in validChannelFolders:
         channelName = utils.getChannelNameFromFolder(channelFolder=channelFolder)
 
-        print(f"Parsing Channel: {channelName}")
-        channelVideos = getVideosFromChannelFolder(
-            channelFolder=channelFolder, optimizeScans=optimizeScans
-        )
+        channelSpecificVideos = [
+            video
+            for video in allYoutubeVideos
+            if video.locations[0].startswith(channelFolder)
+            and video.locations[0].endswith("mkv")
+        ]
 
-        print(f"Found {len(channelVideos)} new videos to scan.\n")
-        if len(channelVideos) < 1:
-            continue
+        if len(channelSpecificVideos) > 0:
+            # # This sorts the videos in Descending order.
+            # # Mimicking Youtube's video listing, most recent to oldest.
+            channelSpecificVideos.sort(key=lambda video: video.title, reverse=True)
 
-        videoObjects = findYoutubeVideosInPlex(
-            plex, channelVideos, mediaType, youtubeLibrary
-        )
-        # This sorts the videos in Descending order.
-        # Mimicking Youtube's video listing, most recent to oldest.
-        videoObjects.sort(key=lambda video: video.title, reverse=True)
+            # # We must parse the date out of the youtube video title and apply it to the plex object
+            # # otherwise, we won't be able to properly sort by release date.
+            channelSpecificVideos = setDatesFromTitles(
+                channelSpecificVideos, channelFolder
+            )
 
-        # We must parse the date out of the youtube video title and apply it to the plex object
-        # otherwise, we won't be able to properly sort by release date.
-        videoObjects = setDatesFromTitles(videoObjects, channelFolder)
+            print(
+                f"Adding {len(channelSpecificVideos)} videos to collection '{channelName}..."
+            )
+            startTime = time.time()
+            collection = addVideosToPlexCollection(
+                plex, channelSpecificVideos, youtubeLibrary, channelName
+            )
+            print(f"Took {math.trunc(time.time() - startTime)} seconds to complete.")
 
-        if len(videoObjects):
-            addVideosToPlexCollection(plex, videoObjects, youtubeLibrary, channelName)
+            if downloadAvatarsAndBanners and ytdlpProcessPath:
+                downloadSuccess = avatarProcessor.getChannelAvatarsAndBanners(
+                    channelFolder, ytdlpProcessPath
+                )
+                # Only attempt to set the plex collection poster if the avatar downloader
+                # above successfully completed.
+                # If you want to reset your collection posters, delete the images/ folder in the
+                # youtubeChannel directory.
+                if downloadSuccess and collection is not None:
+                    avatarProcessor.setPlexCollectionPoster(
+                        collection, channelName, channelFolder, youtubeLibrary
+                    )
 
-        if downloadAvatarsAndBanners and ytdlpProcessPath:
-            avatarProcessor.getChannelAvatarsAndBanners(channelFolder, ytdlpProcessPath)
+        print(f"Channel videos successfully added to Collection in Plex!\n")
 
-        if optimizeScans:
-            saveVideosToScannedVideosLog(channelVideos, channelFolder)
 
-        print(f"Channel successfully added to Collection in Plex!\n")
+if __name__ == "__main__":
+    # Initialize runtime timer. So we can see how long it takes the script to run at the end.
+    startTime = time.time()
+
+    # Run the tool.
+    runtimeResult = run()
+
+    # Completion, cleanup.
+    totalTime = time.time() - startTime
+    print(
+        f"\nCollections creation completed. Total run time: {math.trunc(totalTime)} seconds."
+    )
+
+    # Cool TRON reference.
+    print("\nEnd of Line.")
