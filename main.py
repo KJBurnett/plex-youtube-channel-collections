@@ -51,7 +51,7 @@ def getDateFromTitle(title: str) -> datetime:
 def getVideosFromChannelFolder(channelFolder: str, optimizeScans: bool) -> list[str]:
     videos = [
         os.path.basename(video.replace(".mkv", ""))
-        for video in os.listdir(channelFolder)
+        for video in utils.getFileNamesFromDirectory(channelFolder)
         # Ensure the extension is .mkv, but also ensure the video is not still "in progress" wtih ffmpeg.
         if video.endswith(".mkv") and not video.endswith(".temp.mkv")
     ]
