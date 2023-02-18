@@ -15,6 +15,7 @@ import re
 
 # Internal modules
 import avatarProcessor
+from config import Config
 import utils
 
 
@@ -224,7 +225,26 @@ def saveVideosToScannedVideosLog(channelVideos: list[str], channelFolder: str) -
             f.write(f"{utils.getGuidFromTitle(video)}\n")
 
 
-def run():
+def loadArguments(configFilePath: str) -> Config:
+    with open(configFilePath) as configFile:
+        configJson = json.load(configFile)
+
+    config = Config(
+        configJson["YOUTUBE_LIBRARY_NAME"],
+        configJson["YOUTUBE_VIDEO_EXTENSION"],
+        configJson["MEDIA_TYPE"],
+        configJson["PLEX_URL"],
+        configJson["PLEX_TOKEN"],
+        configJson["YOUTUBE_PATH"],
+        configJson["OPTIMIZE_SCANS"],
+        configJson["YTDLP_PROCESS_PATH"],
+        configJson["DOWNLOAD_AVATARS_AND_BANNERS"],
+    )
+    print(f"Loading config file from {configFilePath} was successful.")
+    return config
+
+
+def loadEnvironmentVariables():
     # Ensure the environment variables exist. Otherwise throw an error and quit.
     youtubeLibrary = os.environ.get("YOUTUBE_LIBRARY_NAME")
     if not youtubeLibrary:
@@ -259,26 +279,51 @@ def run():
     )
     downloadAvatarsAndBanners = True if downloadAvatarsAndBanners == "true" else False
 
+    config = Config(
+        youtubeLibrary,
+        extension,
+        mediaType,
+        baseurl,
+        token,
+        youtubePath,
+        optimizeScans,
+        ytdlpProcessPath,
+        downloadAvatarsAndBanners,
+    )
+
     print("All environment variables successfully loaded.\n")
+
+    return config
+
+
+def run():
+
+    configFilePath = sys.argv[1]
+    config = None
+
+    if configFilePath.endswith("json"):
+        config = loadArguments(configFilePath)
+    else:
+        config = loadEnvironmentVariables()
 
     # Start a PlexServer API session.
     session = requests.Session()
     session.verify = False
-    plex = PlexServer(baseurl, token, session)
+    plex = PlexServer(config.baseurl, config.token, session)
 
     # ===== Let's get to work ===== #
-    validChannelFolders = getValidChannelFolders(youtubePath)
+    validChannelFolders = getValidChannelFolders(config.youtubePath)
     print(f"Found {len(validChannelFolders)} channel(s) to sync.\n")
 
     startTime = time.time()
-    library = plex.library.section(youtubeLibrary)
+    library = plex.library.section(config.youtubeLibrary)
     # Large operation but only needs to be done once (13,000 files took about 38 seconds).
     print(
-        f"Getting all youtube videos from library '{youtubeLibrary}'. This can take up to a minute."
+        f"Getting all youtube videos from library '{config.youtubeLibrary}'. This can take up to a minute."
     )
     allYoutubeVideos = library.all()
     print(
-        f"Found: {len(allYoutubeVideos)} videos in Plex library '{youtubeLibrary}!\nTook {math.trunc(time.time() - startTime)} seconds to complete.\n"
+        f"Found: {len(allYoutubeVideos)} videos in Plex library '{config.youtubeLibrary}!\nTook {math.trunc(time.time() - startTime)} seconds to complete.\n"
     )
 
     for channelFolder in validChannelFolders:
@@ -307,13 +352,13 @@ def run():
             )
             startTime = time.time()
             collection = addVideosToPlexCollection(
-                plex, channelSpecificVideos, youtubeLibrary, channelName
+                plex, channelSpecificVideos, config.youtubeLibrary, channelName
             )
             print(f"Took {math.trunc(time.time() - startTime)} seconds to complete.")
 
-            if downloadAvatarsAndBanners and ytdlpProcessPath:
+            if config.downloadAvatarsAndBanners and config.ytdlpProcessPath:
                 downloadSuccess = avatarProcessor.getChannelAvatarsAndBanners(
-                    channelFolder, ytdlpProcessPath
+                    channelFolder, config.ytdlpProcessPath
                 )
                 # Only attempt to set the plex collection poster if the avatar downloader
                 # above successfully completed.
@@ -321,7 +366,7 @@ def run():
                 # youtubeChannel directory.
                 if downloadSuccess and collection is not None:
                     avatarProcessor.setPlexCollectionPoster(
-                        collection, channelName, channelFolder, youtubeLibrary
+                        collection, channelName, channelFolder, config.youtubeLibrary
                     )
 
         print(f"Channel videos successfully added to Collection in Plex!\n")

@@ -22,7 +22,10 @@
                 "PYTHONWARNINGS": "ignore:Unverified HTTPS request",
                 "OPTIMIZE_SCANS": "true",
                 "DOWNLOAD_AVATARS_AND_BANNERS": "true"
-            }
+            },
+            "args": [
+                "config.json"
+            ]
         },
         {
             "name": "[TAILSCALE VPN] main script run",
