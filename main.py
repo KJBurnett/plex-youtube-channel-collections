@@ -298,10 +298,12 @@ def loadEnvironmentVariables():
 
 def run():
 
-    configFilePath = sys.argv[1]
+    configFilePath = None
+    if len(sys.argv) > 1:
+        configFilePath = sys.argv[1]
     config = None
 
-    if configFilePath.endswith("json"):
+    if configFilePath is not None and configFilePath.endswith("json"):
         config = loadArguments(configFilePath)
     else:
         config = loadEnvironmentVariables()

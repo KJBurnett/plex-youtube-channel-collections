@@ -12,7 +12,7 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "env": {
-                "PLEX_URL": "https://192.168.1.25:32400",
+                "PLEX_URL": "https://192.168.1.20:32400",
                 "PLEX_TOKEN": "<Insert-Plex-Token>",
                 "YOUTUBE_PATH": "\\\\192.168.1.25\\DrivePool\\Youtube",
                 "YOUTUBE_LIBRARY_NAME": "Youtube",
@@ -21,7 +21,8 @@
                 "SECONDS_TO_WAIT": "3600",
                 "PYTHONWARNINGS": "ignore:Unverified HTTPS request",
                 "OPTIMIZE_SCANS": "true",
-                "DOWNLOAD_AVATARS_AND_BANNERS": "true"
+                "DOWNLOAD_AVATARS_AND_BANNERS": "true",
+                "YTDLP_PROCESS_PATH": "J:\\Youtube\\youtube-dlp.exe"
             },
             "args": [
                 "config.json"
@@ -54,19 +55,9 @@
             "program": "main.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "env": {
-                "PLEX_URL": "https://localhost:32400",
-                "PLEX_TOKEN": "<Insert-Plex-Token>",
-                "YOUTUBE_PATH": "J:\\Youtube",
-                "YOUTUBE_LIBRARY_NAME": "Youtube",
-                "MEDIA_TYPE": "movie",
-                "YOUTUBE_VIDEO_EXTENSION": ".mkv",
-                "SECONDS_TO_WAIT": "3600",
-                "PYTHONWARNINGS": "ignore:Unverified HTTPS request",
-                "OPTIMIZE_SCANS": "true",
-                "DOWNLOAD_AVATARS_AND_BANNERS": "true",
-                "YTDLP_PROCESS_PATH": "J:\\Youtube\\youtube-dlp.exe"
-            }
+            "args": [
+                "config.json"
+            ]
         },
         {
             "name": "Run Current File",
