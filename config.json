@@ -1,7 +1,7 @@
 {
     "PLEX_URL": "https://localhost:32400",
     "PLEX_TOKEN": "<Insert-Plex-Token>",
-    "YOUTUBE_PATH": "J:\\Youtube",
+    "YOUTUBE_PATH": "C:\\Youtube",
     "YOUTUBE_LIBRARY_NAME": "Youtube",
     "MEDIA_TYPE": "movie",
     "YOUTUBE_VIDEO_EXTENSION": ".mkv",
@@ -9,5 +9,5 @@
     "PYTHONWARNINGS": "ignore:Unverified HTTPS request",
     "OPTIMIZE_SCANS": "true",
     "DOWNLOAD_AVATARS_AND_BANNERS": "true",
-    "YTDLP_PROCESS_PATH": "J:\\Youtube\\youtube-dlp.exe"
+    "YTDLP_PROCESS_PATH": "C:\\user\\youtube-dlp.exe"
 }
