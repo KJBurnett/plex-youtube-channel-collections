@@ -1,5 +1,6 @@
 import os
 import subprocess
+from plexapi.server import Collection
 
 # Internal modules
 import utils
@@ -52,3 +53,30 @@ def downloadAvatarsAndBannersFromChannel(
     os.chdir(projectPath)
 
     return True
+
+
+def setPlexCollectionPoster(
+    collection: Collection, channelName: str, channelFolder: str, youtubeLibrary: str
+) -> None:
+    # We specifically want the jpg that endswith avatar_uncropped
+    # Example image name: "TheStradman [UC21Kozr_K0yDM-VjoihG9Aw].avatar_uncropped.jpg"
+    imagesFolder = os.path.join(channelFolder, "images")
+    foundImages = [
+        image
+        for image in os.listdir(imagesFolder)
+        if image.endswith("avatar_uncropped.jpg")
+    ]
+
+    # Find a jpg in the channel's images folder that endswith ".avatar_uncropped".
+    # If no image is found, skip uploading.
+    if len(foundImages) > 0:
+        print(
+            f"Uploading image '{foundImages[0]}' to collection '{channelName}' posters."
+        )
+        imagePath = os.path.join(imagesFolder, foundImages[0])
+        collection.uploadPoster(filepath=imagePath)
+        print("Success")
+    else:
+        print(
+            f"No images ending with '.avatar_uncropped.jpg' found. Skipping poster creation for collection '{channelName}'"
+        )
