@@ -96,3 +96,4 @@ When I tested first-time runs, it takes about 15 minutes to generate the initial
 - ✅ Create in-depth documentation for utilizing yt-dlp in conjunction with this script. The video files must be organized and titled correctly or this script will not work.
 - ✅ Add a flag to automatically pull the Youtube Channl avatar and banner, and automatically set the Plex Collection cover art to these images (super cool)
 - ✅ Implement unit tests using pytest
+- ✅ Add Github Actions to Pull Requests
