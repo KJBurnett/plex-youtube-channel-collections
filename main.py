@@ -39,10 +39,15 @@ def setDatesFromTitles(videoObjects: list[Movie], channelFolder: str) -> list[Mo
 # Then, parse the year, month, and day out of the singular no-space string.
 # returns a datetime object, as required by plexapi.video.originallyAvailableAt
 def getDateFromTitle(title: str) -> datetime:
-    date = title.split(" ")[0]
-    year = int(date[:4])
-    month = int(date[4:6])
-    day = int(date[6:8])
+    try:
+        date = title.split(" ")[0]
+        year = int(date[:4])
+        month = int(date[4:6])
+        day = int(date[6:8])
+    except:
+        year = 1970
+        month = 1
+        day = 1
     return datetime(year, month, day)
 
 
@@ -334,7 +339,7 @@ def run():
         channelSpecificVideos = [
             video
             for video in allYoutubeVideos
-            if video.locations[0].startswith(channelFolder)
+            if channelName in video.locations[0]
             and video.locations[0].endswith("mkv")
         ]
 
