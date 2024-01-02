@@ -6,6 +6,9 @@ This project is now in a 1.0 usable state.
 When archiving youtube videos, It's difficult to have a proper UI experience to watch the youtube videos and channels that we've archived.
 This project aims to utilize tools available in Plex to make a usable watching experience for Youtube channels archived utilizing yt-dlp.
 
+![image](https://github.com/KJBurnett/plex-youtube-channel-collections/assets/9143189/793d7219-6012-402e-9efb-6e7ac30cf58c)
+
+
 ## Environment Setup
 - Install the requirements.txt with `py -m pip install -r requirements.txt` located in this project.
 - Written and tested with python 3.10.x and 3.11.x
