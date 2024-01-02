@@ -161,74 +161,106 @@ def searchPlexForVideo(
 
 
 def addVideosToSmartCollection(
-    plex: PlexServer, videoObjects: any, library: str, collectionName: str, filters: dict
+    plex: PlexServer,
+    videoObjects: any,  # type: ignore
+    library: str,
+    collectionName: str,
+    filters: dict,
 ) -> Collection:
-    collection = None
     # Check to see if the collection already exists.
     collectionResults = plex.search(
         collectionName, mediatype="collection", sectionId=library
     )
 
-    if collectionResults:
-        collection = collectionResults[0]
-
     # If the collection exists and it's not a smart collection, delete it
-    if collectionResults and not collection.smart:
-        collection.delete()
+    if collectionResults and not collectionResults[0].smart:
+        collectionResults[0].delete()
         collectionResults = []
 
     # If the collection does not exist, create a smart collection
     if not collectionResults:
-        collection = createSmartCollection(plex=plex, 
-            collectionName=collectionName, library=library, videoObjects=videoObjects, sort="titleSort:desc", filters=filters
+        collection = createSmartCollection(
+            plex=plex,
+            collectionName=collectionName,
+            library=library,
+            videoObjects=videoObjects,
+            sort="titleSort:desc",
+            filters=filters,
         )
+        return collection
 
-    return collection
+    return collectionResults[0]
 
 
 def addVideosToPlexCollection(
-    plex: PlexServer, videoObjects: any, library: str, collectionName: str
+    plex: PlexServer, videoObjects: any, library: str, collectionName: str  # type: ignore
 ) -> Collection:
-    collection = None
     # Check to see if the collection already exists.
     collectionResults = plex.search(
         collectionName, mediatype="collection", sectionId=library
     )
 
-    if collectionResults:
-        collection = collectionResults[0]
-
     # If the collection exists and it's a smart collection, delete it
-    if collectionResults and collection.smart:
-        collection.delete()
+    if collectionResults and collectionResults[0].smart:
+        collectionResults[0].delete()
         collectionResults = []
 
     # If the collection does not exist, create a smart collection
     if not collectionResults:
-        collection = createPlexCollection(plex=plex, 
-            collectionName=collectionName, library=library, videoObjects=videoObjects, sort="titleSort:desc"
+        collection = createPlexCollection(
+            plex=plex,
+            collectionName=collectionName,
+            library=library,
+            videoObjects=videoObjects,
+            sort="titleSort:desc",
         )
+        return collection
     else:
-        videosAlreadyInCollection = set(item.title for item in collection.items())
-        newVideosToAdd = [video for video in videoObjects if video.title not in videosAlreadyInCollection]
+        videosAlreadyInCollection = set(
+            item.title for item in collectionResults[0].items()
+        )
+        newVideosToAdd = [
+            video
+            for video in videoObjects
+            if video.title not in videosAlreadyInCollection
+        ]
         if len(newVideosToAdd) > 0:
-                collection.addItems(newVideosToAdd)
+            collectionResults[0].addItems(newVideosToAdd)
 
-    return collection
+    return collectionResults[0]
 
-    
-def createPlexCollection(plex: PlexServer, collectionName: str, library: str, videoObjects: any, sort: str) -> Collection:
+
+def createPlexCollection(
+    plex: PlexServer, collectionName: str, library: str, videoObjects: any, sort: str  # type: ignore
+) -> Collection:
     print(f"The collection does not exist. Creating a collection for {collectionName}")
     collection = plex.createCollection(
-        title=collectionName, section=library, items=videoObjects, sort=sort, smart=False
+        title=collectionName,
+        section=library,
+        items=videoObjects,
+        sort=sort,
+        smart=False,
     )
     return collection
 
 
-def createSmartCollection(plex: PlexServer, collectionName: str, library: str, videoObjects: any, sort: str, filters: dict) -> Collection:
+def createSmartCollection(
+    plex: PlexServer,
+    collectionName: str,
+    library: str,
+    videoObjects: any,  # type: ignore
+    sort: str,
+    filters: dict,
+) -> Collection:
     print(f"The collection does not exist. Creating a collection for {collectionName}")
     collection = plex.createCollection(
-        libtype= "movie", title=collectionName, section=library, items=videoObjects, sort=sort, smart=True, filters=filters
+        libtype="movie",
+        title=collectionName,
+        section=library,
+        items=videoObjects,
+        sort=sort,
+        smart=True,
+        filters=filters,
     )
     return collection
 
@@ -240,40 +272,51 @@ def addLabelToVideos(labelName: str, videoObjects: list) -> bool:
 
     try:
         batchSize = 100  # Number of video objects in each batch
-        totalBatches = (len(videoObjects) + batchSize - 1) // batchSize  # Calculate total number of batches
+        totalBatches = (
+            len(videoObjects) + batchSize - 1
+        ) // batchSize  # Calculate total number of batches
 
         for batchNumber in range(0, len(videoObjects), batchSize):
-            batch = videoObjects[batchNumber:batchNumber + batchSize]
-            
+            batch = videoObjects[batchNumber : batchNumber + batchSize]
+
             for video in batch:
                 if labelName not in [label.tag for label in video.labels]:
                     video.addLabel(labelName)
 
-            print(f"Sleeping for 5 seconds. Batch {batchNumber // batchSize + 1} of {totalBatches}")
+            print(
+                f"Sleeping for 5 seconds. Batch {batchNumber // batchSize + 1} of {totalBatches}"
+            )
             time.sleep(5)
 
         return True
     except Exception as e:
         print(f"An error occurred: {e}")
         return False
-    
+
 
 # Please note that "videos" implies plex video objects. Not video files.
-def addLabelsToVideosByFolder(plex: PlexServer, allVideosInLibrary: any, folder: str) -> None:
+def addLabelsToVideosByFolder(
+    plex: PlexServer, allVideosInLibrary: any, folder: str  # type: ignore
+) -> list[Unknown] or None:  # type: ignore
     # Returns the parent folder name, which will become the label being tagged.
     # For example: "J:\\Personal\\Smash Ultimate\\From Viykin" would return "From Viykin"
     label: str = os.path.basename(folder)
-    
-    folderSpecificVideos = [video for video in allVideosInLibrary 
-                            if os.path.dirname(video.locations[0]) == folder
-                            and all(label not in labelObject.tag for labelObject in video.labels)]
+
+    folderSpecificVideos = [
+        video
+        for video in allVideosInLibrary
+        if os.path.dirname(video.locations[0]) == folder
+        and all(label not in labelObject.tag for labelObject in video.labels)
+    ]
     success: bool = addLabelToVideos(label, folderSpecificVideos)
 
     if success:
         if len(folderSpecificVideos) < 1:
             print(f"Received no videos to add. Returning...")
         else:
-            print(f"Successfully added the label '{label}' to {len(folderSpecificVideos)} videos.")
+            print(
+                f"Successfully added the label '{label}' to {len(folderSpecificVideos)} videos."
+            )
     else:
         print(f"Failed to add the label '{label}' to video library of folder.")
 
@@ -399,7 +442,6 @@ def loadEnvironmentVariables():
 
 
 def run():
-
     configFilePath = None
     if len(sys.argv) > 1:
         configFilePath = sys.argv[1]
