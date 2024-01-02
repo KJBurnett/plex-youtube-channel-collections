@@ -1,6 +1,10 @@
 # plex-youtube-channel-collections
 Generate unique collections for each youtube channel folder stored locally.
-This project is now in a 1.0 usable state.
+This project is currently in development. Please use at your own risk. 
+The plexapi can sometimes be finicky and I am still fine-tuning the best way to create smart collection metadata without upsetting the plex client.
+I have not experienced any client-breaking bugs, but sometimes you may have to manually delete automatically created collections in plex and retry.
+As always, please ensure to do a test sandbox of your videos first, or at the very least make a backup of your videos before trying to modify them.
+This tooling does not (should not lol) make any physical changes to your local video files. All changes are done on the Plex-end.
 
 #youtubearchive
 When archiving youtube videos, It's difficult to have a proper UI experience to watch the youtube videos and channels that we've archived.
